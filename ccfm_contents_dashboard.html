@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CCFM 콘텐츠 Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#fff;--bg2:#f7f7f5;--bg3:#f0f0ec;
+  --border:#e8e8e4;--border2:#d4d4ce;
+  --text:#1a1a1a;--muted:#6b6b6b;--hint:#a0a09a;
+  --accent:#e91e8c;--accent2:#ff6bb5;
+  --blue:#2f6ef7;--green:#10a37f;--purple:#7c3aed;
+  --radius:10px;--radius-lg:14px;
+  --font:'Pretendard','Apple SD Gothic Neo',sans-serif;
+  --sidebar:180px;--header:56px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── Header ── */
+.header{height:var(--header);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:20px;position:sticky;top:0;background:var(--bg);z-index:100;}
+.logo{font-size:14px;font-weight:600;color:var(--accent);letter-spacing:-0.3px;white-space:nowrap;}
+.logo span{color:var(--text);}
+.main-tabs{display:flex;gap:0;margin-left:8px;}
+.main-tab{padding:0 20px;height:var(--header);border:none;background:none;font-family:var(--font);font-size:14px;font-weight:500;color:var(--hint);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.main-tab:hover{color:var(--text);}
+.main-tab.active{color:var(--text);border-bottom-color:var(--accent);}
+.date-controls{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.period-btn{padding:5px 14px;border:1px solid var(--border2);border-radius:99px;background:var(--bg);font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;}
+.period-btn:hover{border-color:var(--text);color:var(--text);}
+.period-btn.active{background:var(--text);border-color:var(--text);color:#fff;}
+.date-sep{color:var(--hint);font-size:13px;}
+.date-input{padding:5px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg);outline:none;}
+.date-input:focus{border-color:var(--accent);}
+
+/* ── Layout ── */
+.body{display:flex;flex:1;}
+.sidebar{width:var(--sidebar);border-right:1px solid var(--border);padding:20px 0;position:sticky;top:var(--header);height:calc(100vh - var(--header));overflow-y:auto;}
+.sidebar-item{display:block;padding:8px 20px;font-size:13px;font-weight:500;color:var(--hint);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;border-left:2px solid transparent;}
+.sidebar-item:hover{color:var(--text);}
+.sidebar-item.active{color:var(--text);border-left-color:var(--accent);background:var(--bg2);}
+.content{flex:1;padding:28px;overflow-x:auto;}
+
+/* ── Cards ── */
+.card-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+.card-label{font-size:11px;font-weight:500;color:var(--hint);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:10px;}
+.card-value{font-size:26px;font-weight:600;letter-spacing:-0.5px;color:var(--text);}
+.card-sub{font-size:12px;color:var(--hint);margin-top:4px;}
+
+/* ── Chart box ── */
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;}
+.chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.chart-title{font-size:14px;font-weight:600;}
+.chart-legend{display:flex;gap:14px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);cursor:pointer;}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
+
+/* ── Sub tabs ── */
+.sub-tabs{display:flex;gap:8px;margin-bottom:20px;}
+.sub-tab{padding:6px 16px;border:1px solid var(--border2);border-radius:99px;background:var(--bg);font-family:var(--font);font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;}
+.sub-tab:hover{border-color:var(--text);color:var(--text);}
+.sub-tab.active{background:var(--text);border-color:var(--text);color:#fff;}
+
+/* ── Media grid ── */
+.media-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.media-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:border-color .15s;}
+.media-card:hover{border-color:var(--border2);}
+.media-thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--bg3);}
+.media-thumb-placeholder{width:100%;aspect-ratio:1;background:var(--bg3);display:flex;align-items:center;justify-content:center;color:var(--hint);font-size:12px;}
+.media-body{padding:14px;}
+.media-type-badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;margin-bottom:8px;}
+.badge-reel{background:#fdf0f7;color:var(--accent);}
+.badge-carousel{background:#eef2ff;color:var(--blue);}
+.badge-image{background:#f0fdf4;color:var(--green);}
+.media-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.media-stat{font-size:12px;color:var(--muted);}
+.media-stat strong{color:var(--text);font-weight:600;}
+.media-reactions{display:flex;gap:12px;border-top:1px solid var(--border);padding-top:10px;margin-top:4px;}
+.reaction{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);}
+
+/* ── Table ── */
+.table-controls{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+.toggle-group{display:flex;gap:6px;flex-wrap:wrap;}
+.toggle-btn{padding:4px 12px;border:1px solid var(--border2);border-radius:99px;background:var(--bg);font-family:var(--font);font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;}
+.toggle-btn:hover{border-color:var(--text);color:var(--text);}
+.toggle-btn.active{background:var(--text);border-color:var(--text);color:#fff;}
+.sort-select{padding:5px 28px 5px 10px;border:1px solid var(--border2);border-radius:var(--radius);font-family:var(--font);font-size:13px;color:var(--text);background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6b6b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 9px center;appearance:none;outline:none;cursor:pointer;}
+.table-wrap{border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13.5px;white-space:nowrap;}
+thead tr{background:var(--bg2);border-bottom:1px solid var(--border);}
+thead th{padding:10px 14px;text-align:left;font-size:12px;font-weight:500;color:var(--hint);cursor:pointer;}
+thead th:hover{color:var(--text);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--bg2);}
+tbody td{padding:12px 14px;vertical-align:middle;}
+.td-num{text-align:right;font-variant-numeric:tabular-nums;}
+.td-title{max-width:320px;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+.td-hidden{display:none;}
+
+/* ── Sources ── */
+.sources-list{display:flex;flex-direction:column;gap:8px;}
+.source-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);}
+.source-name{font-size:13px;font-weight:500;min-width:140px;}
+.source-bar-wrap{flex:1;height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;}
+.source-bar{height:100%;border-radius:99px;background:var(--accent);transition:width .4s;}
+.source-count{font-size:13px;font-variant-numeric:tabular-nums;min-width:60px;text-align:right;}
+.source-pct{font-size:12px;color:var(--hint);min-width:40px;text-align:right;}
+
+/* ── Inblog source filter ── */
+.src-filter{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.src-btn{padding:4px 12px;border:1px solid var(--border2);border-radius:99px;background:var(--bg);font-family:var(--font);font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;}
+.src-btn:hover{border-color:var(--text);}
+.src-btn.active{border-color:var(--accent);background:#fdf0f7;color:var(--accent);}
+
+/* ── Loading ── */
+.loading{display:flex;align-items:center;gap:10px;padding:20px 0;color:var(--hint);font-size:13px;}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Insight table ── */
+.insight-bar{display:flex;align-items:center;gap:6px;min-width:160px;}
+.bar-track{flex:1;height:4px;background:var(--bg3);border-radius:99px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;}
+
+.dd-item{padding:6px 10px;border-radius:6px;font-size:13px;cursor:pointer;transition:background .1s;}
+.dd-item:hover{background:var(--bg2);}
+.dd-item.selected{opacity:.4;pointer-events:none;}
+.src-tag{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg);color:var(--muted);transition:all .15s;}
+.src-tag.sort-active{background:var(--text);border-color:var(--text);color:#fff;}
+.src-tag .tag-x{font-size:10px;opacity:.6;margin-left:2px;}
+
+/* ── Sections ── */
+.section{display:none;}
+.section.active{display:block;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="logo">CCFM <span>콘텐츠 Dashboard</span></div>
+  <nav class="main-tabs">
+    <button class="main-tab active" onclick="switchMain('ig')">Instagram</button>
+    <button class="main-tab" onclick="switchMain('ib')">Inblog</button>
+  </nav>
+  <div class="date-controls">
+    <span id="last-updated" style="font-size:12px;color:var(--hint);margin-right:8px;"></span>
+    <button class="period-btn" onclick="setPeriod(7,this)">7일</button>
+    <button class="period-btn active" onclick="setPeriod(30,this)">30일</button>
+    <button class="period-btn" onclick="setPeriod(90,this)">90일</button>
+    <input type="date" class="date-input" id="date-from" onchange="onDateChange()">
+    <span class="date-sep">—</span>
+    <input type="date" class="date-input" id="date-to" onchange="onDateChange()">
+  </div>
+</header>
+
+<div class="body">
+
+  <!-- ════ INSTAGRAM ════ -->
+  <div id="ig-wrap" style="display:flex;flex:1;">
+    <aside class="sidebar">
+      <button class="sidebar-item active" onclick="igSwitch('account')">계정 성과</button>
+      <button class="sidebar-item" onclick="igSwitch('media')">게시물 성과</button>
+      <button class="sidebar-item" onclick="igSwitch('insight')">인사이트</button>
+    </aside>
+    <div class="content">
+
+      <!-- 계정 성과 -->
+      <div id="ig-account" class="section active">
+        <div id="ig-loading" class="loading"><div class="spinner"></div><span>데이터 불러오는 중...</span></div>
+        <div class="card-grid">
+          <div class="card"><div class="card-label">조회수</div><div class="card-value" id="ig-views">—</div><div class="card-sub">기간 합계</div></div>
+          <div class="card"><div class="card-label">반응</div><div class="card-value" id="ig-interactions">—</div><div class="card-sub">좋아요·저장·공유·댓글</div></div>
+          <div class="card"><div class="card-label">팔로워</div><div class="card-value" id="ig-followers">—</div><div class="card-sub">최근 기준</div></div>
+          <div class="card"><div class="card-label">프로필 방문 / 링크 클릭</div><div class="card-value" id="ig-profile">—</div><div class="card-sub" id="ig-links">—</div></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <div class="chart-title">일별 성과 추이</div>
+            <div class="chart-legend">
+              <div class="legend-item" onclick="toggleLine('views')"><div class="legend-dot" style="background:#e91e8c"></div>조회수</div>
+              <div class="legend-item" onclick="toggleLine('interactions')"><div class="legend-dot" style="background:#2f6ef7"></div>반응</div>
+              <div class="legend-item" onclick="toggleLine('reach')"><div class="legend-dot" style="background:#10a37f"></div>도달</div>
+            </div>
+          </div>
+          <div style="height:200px;position:relative;">
+            <canvas id="ig-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 게시물 성과 -->
+      <div id="ig-media" class="section">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="sub-tabs" style="margin-bottom:0;">
+            <button class="sub-tab active" onclick="filterMedia('all',this)">전체</button>
+            <button class="sub-tab" onclick="filterMedia('CAROUSEL_ALBUM',this)">카드뉴스</button>
+            <button class="sub-tab" onclick="filterMedia('REELS',this)">릴스</button>
+          </div>
+          <select class="sort-select" id="media-sort" onchange="renderMedia(currentMediaFilter)">
+            <option value="date-desc">최신순</option>
+            <option value="date-asc">오래된 순</option>
+            <option value="views-desc">조회수 높은 순</option>
+            <option value="reach-desc">도달 높은 순</option>
+            <option value="interactions-desc">반응 높은 순</option>
+          </select>
+        </div>
+        <div class="media-grid" id="media-grid"></div>
+      </div>
+
+      <!-- 인사이트 -->
+      <div id="ig-insight" class="section">
+        <div class="table-controls">
+          <div class="sub-tabs" style="margin-bottom:0;">
+            <button class="sub-tab active" onclick="filterInsight('all',this)">전체</button>
+            <button class="sub-tab" onclick="filterInsight('CAROUSEL_ALBUM',this)">카드뉴스</button>
+            <button class="sub-tab" onclick="filterInsight('REELS',this)">릴스</button>
+          </div>
+          <select class="sort-select" id="insight-sort" onchange="renderInsight()">
+            <option value="date-desc">최신순</option>
+            <option value="views-desc">조회수 높은 순</option>
+            <option value="nfv-desc">비팔로워 조회 높은 순</option>
+            <option value="reach-desc">도달 높은 순</option>
+            <option value="interactions-desc">반응 높은 순</option>
+            <option value="nfr-desc">비팔로워 반응 높은 순</option>
+            <option value="saved-desc">저장 높은 순</option>
+            <option value="shares-desc">공유 높은 순</option>
+            <option value="likes-desc">좋아요 높은 순</option>
+            <option value="comments-desc">댓글 높은 순</option>
+          </select>
+        </div>
+        <div id="insight-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px;"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ════ INBLOG ════ -->
+  <div id="ib-wrap" style="display:none;flex:1;">
+    <aside class="sidebar">
+      <button class="sidebar-item active" onclick="ibSwitch('summary')">성과 요약</button>
+      <button class="sidebar-item" onclick="ibSwitch('posts')">게시물 성과</button>
+      <button class="sidebar-item" onclick="ibSwitch('sources')">유입 경로</button>
+    </aside>
+    <div class="content">
+
+      <!-- 성과 요약 -->
+      <div id="ib-summary" class="section active">
+        <div id="ib-loading" class="loading"><div class="spinner"></div><span>데이터 불러오는 중...</span></div>
+        <div class="card-grid">
+          <div class="card"><div class="card-label">총 방문수</div><div class="card-value" id="ib-visits">—</div></div>
+          <div class="card"><div class="card-label">총 자연유입수</div><div class="card-value" id="ib-organic">—</div></div>
+          <div class="card"><div class="card-label">총 클릭수</div><div class="card-value" id="ib-clicks">—</div></div>
+          <div class="card"><div class="card-label">평균 전환율</div><div class="card-value" id="ib-cvr">—</div></div>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header"><div class="chart-title">방문 유입 경로 상위</div></div>
+          <div class="sources-list" id="ib-sources-list"></div>
+        </div>
+      </div>
+
+      <!-- 게시물 성과 -->
+      <div id="ib-posts" class="section">
+        <div class="table-controls">
+          <div class="toggle-group">
+            <button class="toggle-btn active" data-col="visits" onclick="ibToggle(this)">총 방문수</button>
+            <button class="toggle-btn active" data-col="organic" onclick="ibToggle(this)">자연 유입수</button>
+            <button class="toggle-btn active" data-col="clicks" onclick="ibToggle(this)">클릭수</button>
+            <button class="toggle-btn active" data-col="cvr" onclick="ibToggle(this)">전환율</button>
+          </div>
+          <select class="sort-select" id="ib-sort" onchange="renderIbPosts()">
+            <option value="date-desc">최신순</option>
+            <option value="visits-desc">총 방문수 높은 순</option>
+            <option value="organic-desc">자연유입수 높은 순</option>
+            <option value="clicks-desc">클릭수 높은 순</option>
+            <option value="cvr-desc">전환율 높은 순</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:300px;">게시물</th>
+                <th class="td-num ib-th" id="th-visits">총 방문수</th>
+                <th class="td-num ib-th" id="th-organic">자연 유입수</th>
+                <th class="td-num ib-th" id="th-clicks">클릭수</th>
+                <th class="td-num ib-th" id="th-cvr">전환율</th>
+              </tr>
+            </thead>
+            <tbody id="ib-posts-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 유입 경로 -->
+      <div id="ib-sources" class="section">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+          <div style="position:relative;">
+            <button class="toggle-btn" id="src-dropdown-btn" onclick="toggleSrcDropdown()" style="display:flex;align-items:center;gap:6px;">필터 추가 <span style="font-size:10px;">▼</span></button>
+            <div id="src-dropdown" style="display:none;position:absolute;top:36px;left:0;background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:8px;z-index:50;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+              <div style="font-size:11px;color:var(--hint);padding:4px 8px 6px;font-weight:500;">일반</div>
+              <div class="dd-item" data-src="instagram" onclick="addSrcTag('instagram','인스타그램')">인스타그램</div>
+              <div class="dd-item" data-src="facebook" onclick="addSrcTag('facebook','페이스북')">페이스북</div>
+              <div class="dd-item" data-src="google" onclick="addSrcTag('google','구글검색')">구글검색</div>
+              <div class="dd-item" data-src="naver" onclick="addSrcTag('naver','네이버')">네이버</div>
+              <div class="dd-item" data-src="direct" onclick="addSrcTag('direct','직접유입')">직접유입</div>
+              <div class="dd-item" data-src="ccfm" onclick="addSrcTag('ccfm','CCFM 내부')">CCFM 내부</div>
+              <div class="dd-item" data-src="kakao" onclick="addSrcTag('kakao','카카오')">카카오</div>
+              <div class="dd-item" data-src="threads" onclick="addSrcTag('threads','쓰레드')">쓰레드</div>
+              <div class="dd-item" data-src="etc" onclick="addSrcTag('etc','기타')">기타</div>
+              <div style="font-size:11px;color:var(--hint);padding:8px 8px 6px;font-weight:500;border-top:1px solid var(--border);margin-top:4px;">AI 검색</div>
+              <div class="dd-item" data-src="chatgpt" onclick="addSrcTag('chatgpt','챗지피티')" style="color:#10a37f;">챗지피티</div>
+              <div class="dd-item" data-src="perplexity" onclick="addSrcTag('perplexity','퍼플렉시티')" style="color:#6366f1;">퍼플렉시티</div>
+              <div class="dd-item" data-src="claude" onclick="addSrcTag('claude','클로드')" style="color:#7c3aed;">클로드</div>
+              <div class="dd-item" data-src="gemini" onclick="addSrcTag('gemini','제미나이')" style="color:#1a73e8;">제미나이</div>
+              <div class="dd-item" data-src="notion" onclick="addSrcTag('notion','노션')">노션</div>
+            </div>
+          </div>
+          <div id="src-tags" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr id="src-table-head"></tr></thead>
+            <tbody id="src-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════
+const SHEET_ID = '1h9LYD2aRx5-hK13pBjWYVO0RUfX2Lr8JLzKgwe4Gp1g';
+const BASE = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=`;
+
+// ════════════════════════════════════
+// 날짜 유틸
+// ════════════════════════════════════
+function today() { return new Date().toISOString().slice(0,10); }
+function daysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate()-n);
+  return d.toISOString().slice(0,10);
+}
+function initDates() {
+  document.getElementById('date-from').value = daysAgo(30);
+  document.getElementById('date-to').value = today();
+}
+function getFrom() { return document.getElementById('date-from').value; }
+function getTo()   { return document.getElementById('date-to').value; }
+
+function setPeriod(days, btn) {
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('date-from').value = daysAgo(days);
+  document.getElementById('date-to').value = today();
+  onDateChange();
+}
+function onDateChange() {
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  if(currentMain==='ig') {
+    renderIgAccount();
+    renderMedia(currentMediaFilter);
+    renderInsight();
+  } else {
+    renderIbSummary();
+    renderIbPosts();
+    renderIbSources();
+  }
+}
+
+// ════════════════════════════════════
+// 시트 로딩
+// ════════════════════════════════════
+async function fetchSheet(name) {
+  try {
+    const res = await fetch(BASE + encodeURIComponent(name));
+    const text = await res.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+    const cols = json.table.cols.map(c=>c.label);
+    return (json.table.rows||[]).map(row=>{
+      const obj={};
+      row.c.forEach((cell,i)=>{
+        if(!cell||cell.v===null){obj[cols[i]]=null;return;}
+        if(typeof cell.v==='string'&&cell.v.startsWith('Date(')){
+          const p=cell.v.replace('Date(','').replace(')','').split(',').map(Number);
+          obj[cols[i]]=`${p[0]}-${String(p[1]+1).padStart(2,'0')}-${String(p[2]).padStart(2,'0')}`;
+        } else { obj[cols[i]]=cell.v; }
+      });
+      return obj;
+    });
+  } catch(e){ console.error(name,e); return []; }
+}
+
+function inRange(dateStr) {
+  if(!dateStr) return true;
+  const d = String(dateStr).slice(0,10);
+  return d >= getFrom() && d <= getTo();
+}
+
+// ════════════════════════════════════
+// 탭 전환
+// ════════════════════════════════════
+let currentMain = 'ig';
+function switchMain(tab) {
+  currentMain = tab;
+  document.getElementById('ig-wrap').style.display = tab==='ig'?'flex':'none';
+  document.getElementById('ib-wrap').style.display = tab==='ib'?'flex':'none';
+  document.querySelectorAll('.main-tab').forEach((b,i)=>b.classList.toggle('active',(tab==='ig'&&i===0)||(tab==='ib'&&i===1)));
+  if(tab==='ig') loadIg();
+  else loadIb();
+}
+
+// ── Instagram 하위 탭 ──
+function igSwitch(sec) {
+  ['account','media','insight'].forEach(s=>{
+    document.getElementById('ig-'+s).classList.toggle('active',s===sec);
+  });
+  document.querySelectorAll('#ig-wrap .sidebar-item').forEach((b,i)=>b.classList.toggle('active',['account','media','insight'][i]===sec));
+}
+
+// ── Inblog 하위 탭 ──
+function ibSwitch(sec) {
+  ['summary','posts','sources'].forEach(s=>{
+    document.getElementById('ib-'+s).classList.toggle('active',s===sec);
+  });
+  document.querySelectorAll('#ib-wrap .sidebar-item').forEach((b,i)=>b.classList.toggle('active',['summary','posts','sources'][i]===sec));
+}
+
+// ════════════════════════════════════
+// INSTAGRAM
+// ════════════════════════════════════
+let igDailyData = [], igMediaData = [];
+let igChart = null;
+let igLines = {views:true, interactions:true, reach:true};
+let currentMediaFilter = 'all';
+
+async function loadIg() {
+  document.getElementById('ig-loading').style.display='flex';
+  const [daily, media] = await Promise.all([
+    fetchSheet('ig_daily'),
+    fetchSheet('ig_media'),
+  ]);
+  igDailyData = daily;
+  igMediaData = media;
+  document.getElementById('ig-loading').style.display='none';
+  renderIgAccount();
+  renderMedia('all');
+  renderInsight();
+}
+
+function renderIgAccount() {
+  const filtered = igDailyData.filter(r=>inRange(r.date));
+  const views = filtered.reduce((s,r)=>s+(Number(r.views)||0),0);
+  const interactions = filtered.reduce((s,r)=>s+(Number(r.total_interactions)||0),0);
+  const profileViews = filtered.reduce((s,r)=>s+(Number(r.profile_views)||0),0);
+  const profileLinks = filtered.reduce((s,r)=>s+(Number(r.profile_links_taps)||0),0);
+  const lastFollower = filtered.length ? (Number(filtered[filtered.length-1].follower_count)||0) : 0;
+
+  document.getElementById('ig-views').textContent = views.toLocaleString();
+  document.getElementById('ig-interactions').textContent = interactions.toLocaleString();
+  document.getElementById('ig-followers').textContent = lastFollower.toLocaleString();
+  document.getElementById('ig-profile').textContent = profileViews.toLocaleString();
+  document.getElementById('ig-links').textContent = `링크 클릭 ${profileLinks.toLocaleString()}`;
+
+  renderIgChart(filtered);
+}
+
+function renderIgChart(data) {
+  const labels = data.map(r=>r.date?.slice(5)||'');
+  const ctx = document.getElementById('ig-chart').getContext('2d');
+  if(igChart) igChart.destroy();
+  igChart = new Chart(ctx, {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'조회수',data:data.map(r=>Number(r.views)||0),borderColor:'#e91e8c',backgroundColor:'rgba(233,30,140,0.06)',tension:0.3,pointRadius:3,hidden:!igLines.views},
+        {label:'반응',data:data.map(r=>Number(r.total_interactions)||0),borderColor:'#2f6ef7',backgroundColor:'rgba(47,110,247,0.06)',tension:0.3,pointRadius:3,hidden:!igLines.interactions},
+        {label:'도달',data:data.map(r=>Number(r.reach)||0),borderColor:'#10a37f',backgroundColor:'rgba(16,163,127,0.06)',tension:0.3,pointRadius:3,hidden:!igLines.reach},
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:11},maxTicksLimit:10}},y:{grid:{color:'#f0f0ec'},ticks:{font:{size:11}}}}}
+  });
+}
+
+function toggleLine(key) {
+  igLines[key]=!igLines[key];
+  if(!igChart) return;
+  const idx={views:0,interactions:1,reach:2}[key];
+  igChart.data.datasets[idx].hidden=!igLines[key];
+  igChart.update();
+}
+
+function filterMedia(type, btn) {
+  currentMediaFilter = type;
+  document.querySelectorAll('.sub-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMedia(type);
+}
+
+function renderMedia(type) {
+  let data;
+  if(type==='all') data = igMediaData;
+  else if(type==='REELS') data = igMediaData.filter(m=>m.media_type==='REELS'||m.media_type==='VIDEO');
+  else data = igMediaData.filter(m=>m.media_type===type);
+
+  // 정렬 적용
+  const sort = document.getElementById('media-sort')?.value || 'date-desc';
+  const [field, dir] = sort.split('-');
+  const fn = {
+    date: d => d.timestamp||'',
+    views: d => Number(d.views)||0,
+    reach: d => Number(d.reach)||0,
+    interactions: d => (Number(d.likes)||0)+(Number(d.saved)||0)+(Number(d.shares)||0)+(Number(d.comment)||0),
+  }[field]||(d=>d.timestamp||'');
+  data = [...data].sort((a,b)=>{
+    const av=fn(a), bv=fn(b);
+    if(dir==='desc') return bv>av?1:bv<av?-1:0;
+    return av>bv?1:av<bv?-1:0;
+  });
+  const grid = document.getElementById('media-grid');
+  if(!data.length){grid.innerHTML='<div style="color:var(--hint);font-size:13px;padding:20px;">게시물이 없습니다.</div>';return;}
+  grid.innerHTML = data.map(m=>{
+    const typeLabel = m.media_type==='REELS'?'릴스':m.media_type==='CAROUSEL_ALBUM'?'카드뉴스':'이미지';
+    const typeCls = m.media_type==='REELS'?'badge-reel':m.media_type==='CAROUSEL_ALBUM'?'badge-carousel':'badge-image';
+    const caption = (m.caption||'').replace(/\n/g,' ').slice(0,60);
+    const thumb = m.media_url ? `<img class="media-thumb" src="${m.media_url}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" loading="lazy"><div class="media-thumb-placeholder" style="display:none;">이미지 없음</div>` : `<div class="media-thumb-placeholder">이미지 없음</div>`;
+    return `<div class="media-card" onclick="window.open('${m.permalink||'#'}','_blank')">
+      ${thumb}
+      <div class="media-body">
+        <span class="media-type-badge ${typeCls}">${typeLabel}</span>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.4;">${caption||'캡션 없음'}</div>
+        <div class="media-stats">
+          <div class="media-stat">조회수 <strong>${(m.views||0).toLocaleString()}</strong></div>
+          <div class="media-stat">도달 <strong>${(m.reach||0).toLocaleString()}</strong></div>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">
+          반응 <strong style="color:var(--text);">${((m.likes||0)+(m.saved||0)+(m.shares||0)+(m.comment||0)).toLocaleString()}</strong>
+        </div>
+        <div class="media-reactions">
+          <div class="reaction">🔖 ${(m.saved||0).toLocaleString()}</div>
+          <div class="reaction">↗ ${(m.shares||0).toLocaleString()}</div>
+          <div class="reaction">♡ ${(m.likes||0).toLocaleString()}</div>
+          <div class="reaction">💬 ${(m.comment||0).toLocaleString()}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── 인사이트 ──
+let insightFilter = 'all';
+function filterInsight(type, btn) {
+  insightFilter = type;
+  document.querySelectorAll('#ig-insight .sub-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderInsight();
+}
+
+function renderInsight() {
+  const sort = document.getElementById('insight-sort').value;
+  const [field, dir] = sort.split('-');
+
+  const fn = {
+    date: d => d.timestamp||'',
+    views: d => Number(d.views)||0,
+    nfv: d => Number(d.non_follower_view_pct)||0,
+    reach: d => Number(d.reach)||0,
+    interactions: d => (Number(d.likes)||0)+(Number(d.saved)||0)+(Number(d.shares)||0)+(Number(d.comment)||0),
+    nfr: d => Number(d.non_follower_react_pct)||0,
+    saved: d => Number(d.saved)||0,
+    shares: d => Number(d.shares)||0,
+    likes: d => Number(d.likes)||0,
+    comments: d => Number(d.comment)||0,
+  }[field]||(d=>0);
+
+  let data = igMediaData;
+  if(insightFilter==='REELS') data = igMediaData.filter(m=>m.media_type==='REELS'||m.media_type==='VIDEO');
+  else if(insightFilter!=='all') data = igMediaData.filter(m=>m.media_type===insightFilter);
+
+  const sorted = [...data].sort((a,b)=>{
+    const av=fn(a), bv=fn(b);
+    if(dir==='desc') return bv>av?1:bv<av?-1:0;
+    return av>bv?1:av<bv?-1:0;
+  });
+
+  function pctBar(fPct, nfPct) {
+    const f = Number(fPct)||0;
+    const nf = Number(nfPct)||0;
+    if(!f && !nf) return '';
+    return `
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <span style="font-size:11px;color:var(--accent);min-width:28px;">${f.toFixed(0)}%</span>
+        <div style="flex:1;height:5px;background:var(--bg3);border-radius:99px;overflow:hidden;">
+          <div style="height:100%;width:${f}%;background:var(--accent);border-radius:99px;"></div>
+        </div>
+        <span style="font-size:11px;color:var(--blue);min-width:28px;text-align:right;">${nf.toFixed(0)}%</span>
+        <div style="flex:1;height:5px;background:var(--bg3);border-radius:99px;overflow:hidden;">
+          <div style="height:100%;width:${nf}%;background:var(--blue);border-radius:99px;"></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px;">
+        <span style="font-size:10px;color:var(--hint);">팔로워</span>
+        <span style="font-size:10px;color:var(--hint);">비팔로워</span>
+      </div>`;
+  }
+
+  document.getElementById('insight-grid').innerHTML = sorted.map(m=>{
+    const total = (Number(m.likes)||0)+(Number(m.saved)||0)+(Number(m.shares)||0)+(Number(m.comment)||0);
+    const typeLabel = m.media_type==='REELS'||m.media_type==='VIDEO'?'릴스':m.media_type==='CAROUSEL_ALBUM'?'카드뉴스':'이미지';
+    const typeCls = m.media_type==='REELS'||m.media_type==='VIDEO'?'badge-reel':m.media_type==='CAROUSEL_ALBUM'?'badge-carousel':'badge-image';
+    const thumb = m.media_url
+      ? `<img src="${m.media_url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:var(--radius);display:block;" onerror="this.style.display='none'" loading="lazy">`
+      : `<div style="width:100%;aspect-ratio:1;background:var(--bg3);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--hint);">이미지 없음</div>`;
+
+    return `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;" onclick="window.open('${m.permalink||'#'}','_blank')">
+      <div style="display:flex;gap:12px;padding:14px;">
+        <!-- 썸네일 -->
+        <div style="width:80px;flex-shrink:0;">
+          ${thumb}
+          <div style="margin-top:6px;"><span class="media-type-badge ${typeCls}" style="font-size:10px;">${typeLabel}</span></div>
+        </div>
+        <!-- 데이터 -->
+        <div style="flex:1;min-width:0;">
+          <!-- 캡션 -->
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${(m.caption||'').replace(/\n/g,' ')||'캡션 없음'}</div>
+          <!-- 조회수 -->
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;">
+              <span style="font-size:12px;font-weight:500;color:var(--muted);">조회수</span>
+              <span style="font-size:16px;font-weight:600;">${(Number(m.views)||0).toLocaleString()}</span>
+            </div>
+            ${pctBar(m.follower_view_pct, m.non_follower_view_pct)}
+          </div>
+          <div style="border-top:1px solid var(--border);padding-top:10px;">
+            <!-- 도달 -->
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+              <span style="color:var(--muted);">도달한 계정</span>
+              <span style="font-weight:500;">${(Number(m.reach)||0).toLocaleString()}</span>
+            </div>
+            <!-- 반응 -->
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
+              <span style="font-size:12px;font-weight:500;color:var(--muted);">반응</span>
+              <span style="font-size:14px;font-weight:600;">${total.toLocaleString()}</span>
+            </div>
+            ${pctBar(m.follower_react_pct, m.non_follower_react_pct)}
+            <!-- 반응 상세 -->
+            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+              <div style="font-size:11px;color:var(--muted);">🔖 ${(Number(m.saved)||0).toLocaleString()}</div>
+              <div style="font-size:11px;color:var(--muted);">↗ ${(Number(m.shares)||0).toLocaleString()}</div>
+              <div style="font-size:11px;color:var(--muted);">♡ ${(Number(m.likes)||0).toLocaleString()}</div>
+              <div style="font-size:11px;color:var(--muted);">💬 ${(Number(m.comment)||0).toLocaleString()}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════
+// INBLOG
+// ════════════════════════════════════
+let ibTrafficData=[], ibPostsData=[], ibSourcesData=[], ibPostInfo=[];
+let ibColState = {visits:true,organic:true,clicks:true,cvr:true};
+let activeSrcs = new Set(['instagram','facebook','google','naver','direct','ccfm','kakao','threads','chatgpt','perplexity','claude','gemini','notion','etc']);
+
+function classifySrc(src) {
+  if(!src) return 'etc';
+  const s = src.toLowerCase();
+  if(s==='direct') return 'direct';
+  if(s.includes('facebook')||s.includes('fb.com')) return 'facebook';
+  if(s.includes('instagram')) return 'instagram';
+  if(s.includes('google')) return 'google';
+  if(s.includes('naver')) return 'naver';
+  if(s.includes('ccfm')||s.includes('inblog')||s.includes('ccfmedu')) return 'ccfm';
+  if(s.includes('kakao')) return 'kakao';
+  if(s.includes('threads')) return 'threads';
+  if(s.includes('chatgpt')) return 'chatgpt';
+  if(s.includes('perplexity')) return 'perplexity';
+  if(s.includes('claude')) return 'claude';
+  if(s.includes('gemini')) return 'gemini';
+  if(s.includes('notion')) return 'notion';
+  if(s.includes('bing')) return 'chatgpt'; // Bing AI → chatgpt 그룹
+  return 'etc';
+}
+
+const SRC_LABELS = {
+  instagram:'인스타그램',facebook:'페이스북',google:'구글검색',naver:'네이버',
+  direct:'직접유입',ccfm:'CCFM 내부',kakao:'카카오',threads:'쓰레드',
+  chatgpt:'챗지피티',perplexity:'퍼플렉시티',claude:'클로드',gemini:'제미나이',notion:'노션',etc:'기타'
+};
+
+async function loadIb() {
+  document.getElementById('ib-loading').style.display='flex';
+  const [traffic, posts, sources, postInfo] = await Promise.all([
+    fetchSheet('traffic'),
+    fetchSheet('posts'),
+    fetchSheet('post_sources'),
+    fetchSheet('post_info'),
+  ]);
+  ibTrafficData = traffic;
+  ibPostsData = posts;
+  ibSourcesData = sources;
+  ibPostInfo = postInfo;
+  document.getElementById('ib-loading').style.display='none';
+  renderIbSummary();
+  renderIbPosts();
+  renderIbSources();
+}
+
+function renderIbSummary() {
+  const filtered = ibTrafficData.filter(r=>inRange(r.date));
+  const visits  = filtered.reduce((s,r)=>s+(Number(r.visits)||0),0);
+  const organic = filtered.reduce((s,r)=>s+(Number(r.organic)||0),0);
+  const clicks  = filtered.reduce((s,r)=>s+(Number(r.clicks)||0),0);
+  const avgCvr  = ibPostsData.length ? (ibPostsData.reduce((s,p)=>s+(Number(p.cvr)||0),0)/ibPostsData.length*100).toFixed(2) : 0;
+
+  document.getElementById('ib-visits').textContent   = visits.toLocaleString();
+  document.getElementById('ib-organic').textContent  = organic.toLocaleString();
+  document.getElementById('ib-clicks').textContent   = clicks.toLocaleString();
+  document.getElementById('ib-cvr').textContent      = avgCvr + '%';
+
+  // Top Sources (post_sources 집계)
+  const srcAgg = {};
+  ibSourcesData.forEach(r=>{
+    const g = classifySrc(r.full_referrer);
+    srcAgg[g] = (srcAgg[g]||0) + (Number(r.count)||0);
+  });
+  const sorted = Object.entries(srcAgg).sort((a,b)=>b[1]-a[1]);
+  const total = sorted.reduce((s,[,v])=>s+v,0);
+  const max = sorted[0]?.[1]||1;
+  document.getElementById('ib-sources-list').innerHTML = sorted.slice(0,10).map(([g,cnt])=>`
+    <div class="source-row">
+      <div class="source-name">${SRC_LABELS[g]||g}</div>
+      <div class="source-bar-wrap"><div class="source-bar" style="width:${(cnt/max*100).toFixed(0)}%"></div></div>
+      <div class="source-count">${cnt.toLocaleString()}</div>
+      <div class="source-pct">${total?(cnt/total*100).toFixed(1):0}%</div>
+    </div>
+  `).join('');
+}
+
+function ibToggle(btn) {
+  const col = btn.dataset.col;
+  const isActive = btn.classList.toggle('active');
+  ibColState[col] = isActive;
+  // 헤더 th
+  const th = document.getElementById('th-'+col);
+  if(th) th.style.display = isActive ? '' : 'none';
+  // 바디 td (data-col 속성으로)
+  document.querySelectorAll(`#ib-posts-body td[data-col="${col}"]`).forEach(td=>{
+    td.style.display = isActive ? '' : 'none';
+  });
+}
+
+function renderIbPosts() {
+  const sort = document.getElementById('ib-sort').value;
+  const [field,dir] = sort.split('-');
+  const titleMap = {};
+  ibPostInfo.forEach(p=>{if(p.post_id) titleMap[p.post_id]=p.title||'';});
+
+  let data = ibPostsData.filter(p=>p.post_id).map(p=>({
+    id: p.post_id,
+    title: titleMap[p.post_id]||`Post ${p.post_id}`,
+    date: ibPostInfo.find(i=>i.post_id===p.post_id)?.published_at?.slice(0,10)||'',
+    visits: Number(p.visits)||0,
+    organic: Number(p.organic)||0,
+    clicks: Number(p.clicks)||0,
+    cvr: p.cvr ? (Number(p.cvr)*100).toFixed(2) : 0,
+  }));
+
+  const fn = {
+    date: d => d.date||'',
+    visits: d => d.visits,
+    organic: d => d.organic,
+    clicks: d => d.clicks,
+    cvr: d => Number(d.cvr),
+  }[field]||(d=>d.visits);
+
+  data.sort((a,b)=>{
+    const av=fn(a), bv=fn(b);
+    if(dir==='desc') return bv>av?1:bv<av?-1:0;
+    return av>bv?1:av<bv?-1:0;
+  });
+
+  document.getElementById('ib-posts-body').innerHTML = data.map(p=>`
+    <tr>
+      <td class="td-title">${p.title}<div style="font-size:11px;color:var(--hint);margin-top:2px;">${p.date}</div></td>
+      <td class="td-num" data-col="visits" style="display:${ibColState.visits?'':'none'}">${p.visits.toLocaleString()}</td>
+      <td class="td-num" data-col="organic" style="display:${ibColState.organic?'':'none'}">${p.organic.toLocaleString()}</td>
+      <td class="td-num" data-col="clicks" style="display:${ibColState.clicks?'':'none'}">${p.clicks.toLocaleString()}</td>
+      <td class="td-num" data-col="cvr" style="display:${ibColState.cvr?'':'none'}">${p.cvr}%</td>
+    </tr>
+  `).join('');
+}
+
+// ── 유입 경로 드롭다운 ──
+let activeSrcTags = []; // [{src, label}]
+let sortBySrc = null;
+
+function toggleSrcDropdown() {
+  const dd = document.getElementById('src-dropdown');
+  dd.style.display = dd.style.display==='none' ? 'block' : 'none';
+}
+
+// 외부 클릭시 드롭다운 닫기
+document.addEventListener('click', e=>{
+  const dd = document.getElementById('src-dropdown');
+  const btn = document.getElementById('src-dropdown-btn');
+  if(dd && !dd.contains(e.target) && btn && !btn.contains(e.target)) {
+    dd.style.display='none';
+  }
+});
+
+function addSrcTag(src, label) {
+  // 이미 추가된 태그면 무시
+  if(activeSrcTags.find(t=>t.src===src)) {
+    document.getElementById('src-dropdown').style.display='none';
+    return;
+  }
+  activeSrcTags.push({src, label});
+  // 드롭다운 아이템 비활성화
+  document.querySelector(`.dd-item[data-src="${src}"]`)?.classList.add('selected');
+  document.getElementById('src-dropdown').style.display='none';
+  renderSrcTags();
+  renderIbSources();
+}
+
+function removeSrcTag(src) {
+  activeSrcTags = activeSrcTags.filter(t=>t.src!==src);
+  document.querySelector(`.dd-item[data-src="${src}"]`)?.classList.remove('selected');
+  if(sortBySrc===src) sortBySrc=null;
+  renderSrcTags();
+  renderIbSources();
+}
+
+function setSortBySrc(src) {
+  sortBySrc = sortBySrc===src ? null : src;
+  renderSrcTags();
+  renderIbSources();
+}
+
+function renderSrcTags() {
+  document.getElementById('src-tags').innerHTML = activeSrcTags.map(t=>`
+    <button class="src-tag ${sortBySrc===t.src?'sort-active':''}" onclick="setSortBySrc('${t.src}')">
+      ${t.label}
+      <span class="tag-x" onclick="event.stopPropagation();removeSrcTag('${t.src}')">✕</span>
+    </button>
+  `).join('');
+}
+
+function renderIbSources() {
+  const titleMap = {};
+  ibPostInfo.forEach(p=>{if(p.post_id) titleMap[p.post_id]=p.title||'';});
+
+  const selectedSrcs = activeSrcTags.map(t=>t.src);
+  if(!selectedSrcs.length) {
+    document.getElementById('src-table-head').innerHTML='<th style="padding:12px 14px;font-size:13px;color:var(--hint);">필터를 추가해서 유입 경로를 확인하세요</th>';
+    document.getElementById('src-table-body').innerHTML='';
+    return;
+  }
+
+  // 게시글별 × 소스 집계
+  const postMap = {};
+  ibSourcesData.forEach(r=>{
+    if(!r.post_id) return;
+    const g = classifySrc(r.full_referrer);
+    if(!selectedSrcs.includes(g)) return;
+    if(!postMap[r.post_id]) postMap[r.post_id]={id:r.post_id,title:titleMap[r.post_id]||`Post ${r.post_id}`,total:0,srcs:{}};
+    postMap[r.post_id].srcs[g]=(postMap[r.post_id].srcs[g]||0)+(Number(r.count)||0);
+    postMap[r.post_id].total+=(Number(r.count)||0);
+  });
+
+  let posts = Object.values(postMap);
+
+  // 정렬: 태그 클릭된 게 있으면 그 기준, 없으면 합계 기준
+  if(sortBySrc) {
+    posts.sort((a,b)=>(b.srcs[sortBySrc]||0)-(a.srcs[sortBySrc]||0));
+  } else {
+    posts.sort((a,b)=>b.total-a.total);
+  }
+
+  // 헤더
+  document.getElementById('src-table-head').innerHTML = `
+    <th style="min-width:280px;padding:10px 14px;font-size:12px;font-weight:500;color:var(--hint);background:var(--bg2);border-bottom:1px solid var(--border);">게시물</th>
+    <th class="td-num" style="padding:10px 14px;font-size:12px;font-weight:500;color:var(--hint);background:var(--bg2);border-bottom:1px solid var(--border);">합계</th>
+    ${selectedSrcs.map(g=>`
+      <th class="td-num" style="padding:10px 14px;font-size:12px;font-weight:500;color:${sortBySrc===g?'var(--accent)':'var(--hint)'};background:${sortBySrc===g?'#fdf0f7':'var(--bg2)'};border-bottom:1px solid var(--border);white-space:nowrap;">
+        ${SRC_LABELS[g]||g}${sortBySrc===g?' ↓':''}
+      </th>
+    `).join('')}
+  `;
+
+  // 바디
+  document.getElementById('src-table-body').innerHTML = posts.slice(0,30).map(p=>{
+    const shortTitle = p.title.length>36?p.title.slice(0,36)+'…':p.title;
+    const cells = selectedSrcs.map(g=>{
+      const v = p.srcs[g]||0;
+      return v>0
+        ? `<td class="td-num" style="padding:10px 14px;${sortBySrc===g?'font-weight:600;color:var(--accent);':''}">${v.toLocaleString()} <span style="font-size:11px;color:var(--hint);">${p.total?(v/p.total*100).toFixed(0):0}%</span></td>`
+        : `<td class="td-num" style="padding:10px 14px;color:var(--hint);">—</td>`;
+    }).join('');
+    return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+      <td style="padding:10px 14px;font-size:13px;font-weight:500;max-width:280px;overflow:hidden;text-overflow:ellipsis;">${shortTitle}</td>
+      <td class="td-num" style="padding:10px 14px;">${p.total.toLocaleString()}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+// ════════════════════════════════════
+// 마지막 업데이트 시간
+// ════════════════════════════════════
+async function fetchLastUpdated() {
+  try {
+    const res = await fetch(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=ig_daily`);
+    const text = await res.text();
+    const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+    if(json.version) {
+      const d = new Date(Number(json.version));
+      const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('last-updated').textContent = `업데이트 ${str}`;
+    }
+  } catch(e) {}
+}
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+initDates();
+fetchLastUpdated();
+loadIg();
+</script>
+</body>
+</html>
